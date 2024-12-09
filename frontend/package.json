@@ -42,5 +42,9 @@
     "vite-plugin-vue-devtools": "^7.6.5",
     "vitest": "^2.1.5",
     "vue-tsc": "^2.1.10"
-  }
+  },
+  "description": "This template should help get you started developing with Vue 3 in Vite.",
+  "main": "eslint.config.js",
+  "author": "",
+  "license": "ISC"
 }

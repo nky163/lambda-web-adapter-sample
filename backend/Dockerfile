@@ -10,7 +10,7 @@ RUN npm install
 
 # ソースコードをコピーしてビルド
 COPY . .
-RUN npm run build
+RUN npm run build:express
 
 # Stage 2: Runtime Stage
 FROM public.ecr.aws/docker/library/node:20-alpine
@@ -24,11 +24,12 @@ EXPOSE 3000
 WORKDIR /usr/src/app
 
 # Build Stage から必要な成果物だけをコピー
-COPY --from=builder /usr/src/app/dist ./dist
-COPY --from=builder /usr/src/app/package*.json ./
+COPY --from=builder /usr/src/app/express/dist ./dist
+COPY --from=builder /usr/src/app/open-api ../open-api
+# COPY --from=builder /usr/src/app/package*.json ./
 
 # 実行に必要な依存関係のみをインストール
-RUN npm install --only=production
+# RUN npm install --only=production
 
 # 実行コマンド
 CMD ["node", "dist/server.js"]

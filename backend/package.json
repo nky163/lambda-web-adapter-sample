@@ -1,19 +1,19 @@
 {
   "name": "lambda-web-adapter-example",
   "version": "1.0.0",
-  "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon",
-    "build": "node esbuild.config.js",
-    "start": "node dist/server.js"
+    "dev:express": "nodemon --config express/nodemon.json",
+    "build:express": "node esbuild.config.express.js",
+    "start:express": "node express/dist/server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.21.1"
+    "express": "^4.21.2",
+    "express-openapi-validator": "^5.3.9"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
@@ -22,5 +22,9 @@
     "nodemon": "^3.1.7",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.2"
-  }
+  },
+  "directories": {
+    "lib": "lib"
+  },
+  "description": ""
 }
