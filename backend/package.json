@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev:express": "nodemon --config express/nodemon.json",
+    "test": "dotenv -e .env.test -- jest",
+    "dev:express": "dotenv -e .env.local -- nodemon --config express/nodemon.json",
     "build:express": "node esbuild.config.express.js",
     "start:express": "node express/dist/server.js"
   },
@@ -12,14 +12,27 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.716.0",
+    "@types/pg": "^8.11.10",
+    "aws-sdk": "^2.1692.0",
+    "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "express-openapi-validator": "^5.3.9"
+    "express-openapi-validator": "^5.3.9",
+    "jest": "^29.7.0",
+    "pg": "^8.13.1",
+    "pg-promise": "^11.10.2"
   },
   "devDependencies": {
+    "@aws-sdk/types": "^3.714.0",
     "@types/express": "^5.0.0",
+    "@types/jest": "^29.5.14",
     "@types/node": "^22.10.1",
+    "dockerode": "^4.0.2",
+    "dotenv-cli": "^8.0.0",
     "esbuild": "^0.24.0",
+    "node-pg-migrate": "^7.8.0",
     "nodemon": "^3.1.7",
+    "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.2"
   },

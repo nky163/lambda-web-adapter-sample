@@ -1,66 +1,77 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as path from 'path';
 
+interface AppStackProps extends cdk.StackProps {
+  vpc: ec2.IVpc;
+  stage: string;
+}
+
 export class AppStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props?: AppStackProps) {
     super(scope, id, props);
 
-    // S3 バケット
+    // -----------------------------
+    //  S3, CloudFront, Lambda, API Gateway は省略 (ご質問コードと同じ)
+    // -----------------------------
+
+    // 省略: S3 Bucket
     const siteBucket = new s3.Bucket(this, 'SiteBucket', {
-      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL, // パブリックアクセスを無効化
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL
     });
 
-    // CloudFront OAI を作成
+    // 省略: OAI
     const originAccessIdentity = new cloudfront.OriginAccessIdentity(this, 'OriginAccessIdentity');
-    siteBucket.grantRead(originAccessIdentity)
+    siteBucket.grantRead(originAccessIdentity);
 
-    // CloudFront ディストリビューション
+    // 省略: CloudFront Distribution
     const distribution = new cloudfront.Distribution(this, 'SiteDistribution', {
       defaultBehavior: {
-        origin: new origins.S3Origin(siteBucket, {
-          originAccessIdentity,
-        }),
+        origin: new origins.S3Origin(siteBucket, { originAccessIdentity }),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
       },
+      defaultRootObject: 'index.html',
+      errorResponses: [
+        {
+          httpStatus: 403,
+          responseHttpStatus: 200,
+          responsePagePath: '/index.html',
+          ttl: cdk.Duration.seconds(0), // キャッシュ期間は必要に応じて設定
+        },
+        {
+          httpStatus: 404,
+          responseHttpStatus: 200,
+          responsePagePath: '/index.html',
+          ttl: cdk.Duration.seconds(0),
+        },
+      ],
     });
 
-    // フロントエンドファイルを S3 にデプロイ
+    // 省略: S3 Deploy
     new s3deploy.BucketDeployment(this, 'DeploySite', {
       sources: [s3deploy.Source.asset(path.join(__dirname, '../../frontend/dist'))],
       destinationBucket: siteBucket,
       distribution,
     });
 
-    // Lambda 関数
+    // 省略: Lambda
     const backendLambda = new lambda.DockerImageFunction(this, 'BackendLambda', {
       code: lambda.DockerImageCode.fromImageAsset(path.join(__dirname, '../../backend')),
       architecture: lambda.Architecture.ARM_64,
     });
     
-        // Amazon Cognito ユーザープール
-        const userPool = new cognito.UserPool(this, 'UserPool', {
-          userPoolName: 'AppUserPool',
-          selfSignUpEnabled: true, // ユーザーの自己サインアップを許可
-          signInAliases: { email: true }, // Eメールでサインイン可能
-        });
-    
-        // Cognito ユーザープールクライアント
-        const userPoolClient = new cognito.UserPoolClient(this, 'UserPoolClient', {
-          userPool,
-          generateSecret: false, // クライアントシークレットは不要
-        });
-
-    // API Gateway
+    // 省略: API Gateway
     const cloudWatchRole = new iam.Role(this, 'APIGWCloudWatchRole', {
       assumedBy: new iam.ServicePrincipal('apigateway.amazonaws.com'),
       managedPolicies: [
@@ -72,7 +83,7 @@ export class AppStack extends cdk.Stack {
     });
     const api = new apigateway.LambdaRestApi(this, 'BackendApi', {
       handler: backendLambda,
-      proxy: true,
+      proxy: false,
       deployOptions: {
         accessLogDestination: new apigateway.LogGroupLogDestination(new logs.LogGroup(this, 'ApiAccessLog')),
         accessLogFormat: apigateway.AccessLogFormat.jsonWithStandardFields({
@@ -89,10 +100,69 @@ export class AppStack extends cdk.Stack {
       },
     });
     api.node.addDependency(apiGatewayAccount);
+    
+    const noCachePolicy = new cloudfront.CachePolicy(this, 'NoCachePolicy', {
+      defaultTtl: cdk.Duration.seconds(0),
+      minTtl: cdk.Duration.seconds(1),
+      maxTtl: cdk.Duration.seconds(0),
+      headerBehavior: cloudfront.CacheHeaderBehavior.allowList('Authorization'),
+      queryStringBehavior: cloudfront.CacheQueryStringBehavior.all(),
+      // 必要に応じてCookieBehaviorも設定
+    });
 
-    // CloudFront に API Gateway を追加
     distribution.addBehavior('/api/*', new origins.HttpOrigin(`${api.restApiId}.execute-api.${this.region}.amazonaws.com`, {
       originPath: '/prod',
-    }));
+    }), {
+      cachePolicy: noCachePolicy,
+    });
+
+    const customMessageLambda = new NodejsFunction(this, 'CustomMessageLambda', {
+      runtime: lambda.Runtime.NODEJS_22_X, // Node.jsのバージョンは適宜選択
+      entry: path.join(__dirname, '../../backend', 'lambda/cognito-userpool-triggers', 'customMessage.ts'),
+      handler: 'handler',
+      bundling: {
+        minify: true,
+        sourceMap: true,
+        target: 'node20',
+        externalModules: ['aws-sdk'], // Lambda ランタイムに含まれるものは基本的に除外
+      },
+    });
+    
+    const userPool = new cognito.UserPool(this, 'UserPool', {
+      userPoolName: 'AppUserPool',
+      signInAliases: { email: true },
+      // SMS MFA を必須にする設定
+      mfa: cognito.Mfa.REQUIRED,
+      mfaSecondFactor: {
+        sms: true,
+        otp: false, // TOTP(Authenticatorアプリ)を使わない場合はfalse
+      },
+      enableSmsRole: true,
+      lambdaTriggers: {
+        customMessage: customMessageLambda,
+      }
+    });
+
+    // ユーザープールクライアント
+    const userPoolClient = new cognito.UserPoolClient(this, 'UserPoolClient', {
+      userPool,
+      generateSecret: false,
+    });
+    
+    const cognitoAuthorizer = new apigateway.CognitoUserPoolsAuthorizer(this, 'CognitoAuthorizer', {
+      cognitoUserPools: [userPool],
+      identitySource: apigateway.IdentitySource.header('Authorization'),
+    });
+    
+    api.root.addMethod('ANY', new apigateway.LambdaIntegration(backendLambda), {
+      authorizer: cognitoAuthorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
+    const proxyResource = api.root.addResource('{proxy+}');
+    proxyResource.addMethod('ANY', new apigateway.LambdaIntegration(backendLambda), {
+      authorizer: cognitoAuthorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
   }
 }

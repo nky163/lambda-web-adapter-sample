@@ -1,0 +1,56 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ${DB_CONTAINER_NAME}
+    volumes:
+      - ${POSTGRES_VOLUME}:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      LANG: ja_JP.UTF-8
+      TZ: Asia/Tokyo
+    networks:
+      - ${CONTAINER_NETWORK}
+  aws-resource:
+    image: localstack/localstack
+    container_name: ${AWS_RESOURCE_CONTAINER_NAME}
+    ports:
+      - "${AWS_ENDPOINT_PORT}:4566" # LocalStack Gateway
+    environment:
+      - SERVICES=secretsmanager
+      - DEBUG=${DEBUG:-0}
+    env_file:
+      - ${TARGET_ENV_FILE:-../.env.local}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./localstack/init:/etc/localstack/init
+    networks:
+      - ${CONTAINER_NETWORK}
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+    ports:
+      - "8080:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@pgadmin.org
+      PGADMIN_DEFAULT_PASSWORD: password
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - ${CONTAINER_NETWORK}
+volumes:
+  postgresql-local:
+    driver: local
+  postgresql-test:
+    driver: local
+  pgadmin:
+    driver: local
+networks:
+  backend_local:
+    driver: bridge
+  backend_test:
+    driver: bridge
