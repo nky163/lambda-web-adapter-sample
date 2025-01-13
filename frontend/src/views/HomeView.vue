@@ -2,6 +2,7 @@
 import { get } from 'aws-amplify/api';
 import TheWelcome from '../components/TheWelcome.vue'
 import {signIn, confirmSignIn, signOut} from 'aws-amplify/auth'
+import api, { type ApiResponse } from '../api';
 
 import { ref } from 'vue';
 
@@ -29,8 +30,10 @@ const handleSignOut = async () => {
 }
 
 const handleAPI = async () => {
-  const res =  get({apiName: 'MyAPIGatewayAPI', path: '/users'})
-  console.log(await res.response)
+  const res = await api.get<ApiResponse<any>>('/users');
+    console.log(res);
+  // const res =  get({apiName: 'MyAPIGatewayAPI', path: '/users'})
+  // console.log(await res.response)
   
 }
 

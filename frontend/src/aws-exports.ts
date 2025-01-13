@@ -4,14 +4,14 @@ import { fetchAuthSession } from 'aws-amplify/auth'
 const resourceConfig = {
   Auth: {
     Cognito: {
-      userPoolId: 'ap-northeast-1_u2yLzuJ44',
-      userPoolClientId: '5977qfd82k43vnpqv0699p8mm4',
+      userPoolId: 'ap-northeast-1_oEn1lXLL0',
+      userPoolClientId: '529d85i5il8roo65e5pof0b0j',
     }
   },
   API: {
     REST: {
       MyAPIGatewayAPI: {
-        endpoint: 'https://d1nll46d8agv92.cloudfront.net/api'
+        endpoint: 'https://d3bein1pyk4620.cloudfront.net/api'
       }
     }
   }

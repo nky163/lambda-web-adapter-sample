@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Cognito User Pool ID とユーザー名、パスワードを指定
-USER_POOL_ID=""      # Cognito ユーザープールIDを設定
-USERNAME=""              # ユーザー名
+USER_POOL_ID="ap-northeast-1_oEn1lXLL0"      # Cognito ユーザープールIDを設定
+USERNAME="nakaya163"              # ユーザー名
 NEW_PASSWORD=""   # 新しいパスワード
 
 # パスワードを強制的に変更させるかどうか
@@ -16,9 +16,3 @@ aws cognito-idp admin-set-user-password \
   --permanent \
   --profile "$PROFILE"
   
-# 実行結果の確認
-if [ $? -eq 0 ]; then
-  echo "✅ ユーザー ($USERNAME) のパスワードが正常に設定されました。"
-else
-  echo "❌ ユーザー ($USERNAME) のパスワード設定に失敗しました。"
-fi

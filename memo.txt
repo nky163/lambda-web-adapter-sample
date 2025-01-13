@@ -1,0 +1,152 @@
+
+# フロントエンド共通処理
+- axios共通設定
+```typescript
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+
+// APIレスポンスの型定義例
+export interface ApiResponse<T> {
+  data: T;
+  message?: string;
+  status?: string;
+}
+
+// エラーレスポンスの型定義例
+export interface ApiErrorResponse {
+  statusCode: number;
+  message: string;
+}
+
+// Axiosインスタンスの作成
+const api: AxiosInstance = axios.create({
+  baseURL: 'https://api.example.com', // 共通のエンドポイント
+  timeout: 10000, // タイムアウト
+  headers: {
+    'Content-Type': 'application/json', // 共通のContent-Type
+  },
+});
+
+// リクエストインターセプター: 動的なヘッダーの設定
+api.interceptors.request.use(
+  (config: AxiosRequestConfig) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers = {
+        ...config.headers,
+        Authorization: `Bearer ${token}`,
+      };
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// レスポンスインターセプター: 共通エラーハンドリング
+api.interceptors.response.use(
+  (response: AxiosResponse) => response,
+  (error) => {
+    if (error.response) {
+      // サーバーエラー
+      console.error(`[API Error]: ${error.response.status} - ${error.response.data.message || 'Unexpected error'}`);
+    } else if (error.request) {
+      // ネットワークエラー
+      console.error('[Network Error]: Unable to reach the server.');
+    } else {
+      // その他のエラー
+      console.error(`[Unknown Error]: ${error.message}`);
+    }
+
+    // 必要に応じてエラー内容を加工してスロー
+    const apiError: ApiErrorResponse = {
+      statusCode: error.response?.status || 500,
+      message: error.response?.data?.message || 'An unexpected error occurred.',
+    };
+    return Promise.reject(apiError);
+  }
+);
+
+export default api;
+
+
+---
+
+import api, { ApiResponse } from '../utils/api';
+
+// レスポンスデータ型の定義
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
+// ユーザー一覧取得 (GETリクエスト)
+export const fetchUsers = async (): Promise<ApiResponse<User[]>> => {
+  const response = await api.get<ApiResponse<User[]>>('/users');
+  return response.data;
+};
+
+// 新規ユーザー登録 (POSTリクエスト)
+export const createUser = async (user: Omit<User, 'id'>): Promise<ApiResponse<User>> => {
+  const response = await api.post<ApiResponse<User>>('/users', user);
+  return response.data;
+};
+
+```
+---
+
+フロントエンドテスト
+
+
+# アカウント作成
+- admin-create-user
+- admin-ser-user-password
+- admin-confirm-sign-up
+
+
+- リポジトリに戻りは、、、エンティティ
+- 
+- ユーザー作成
+	- リクエストのバリデーション
+	- AdminCreateUserControllerの呼び出し
+		- 引数
+			- AdminCreateUserInput
+				- actorAccountId
+				- action
+				- resource
+				
+				- 権限
+			- AdminCreateUserResponse
+				- 
+		- リクエストのusernameからAcountテーブルのaccountIdをキーにユーザーオブジェクトを取得
+		- ID生成
+		- 生成するAccountオブジェクトを生成
+		- 権限チェック
+			- ユーザー作成
+				- Actor: リクエストした人
+				- Action: Create
+				- Resource: アカウント
+		- try
+			- adminCreateUser
+			- adminSetUserAtribuute
+			- adminSetUserPassword
+			- アカウントテーブルにユーザー作成
+		- catch
+			- adminDeleteUser
+		- ユーザーオブジェクトを返却
+	- レスポンスに変換
+- 
+
+# Cognitoのローカル
+
+# API呼び出し時の認証
+set-user-password
+
+- 画面から
+post
+
+
+ローカル実行
+フロントだけ
+バックエンドだけ

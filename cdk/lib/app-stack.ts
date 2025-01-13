@@ -130,13 +130,21 @@ export class AppStack extends cdk.Stack {
     
     const userPool = new cognito.UserPool(this, 'UserPool', {
       userPoolName: 'AppUserPool',
-      signInAliases: { email: true },
-      // SMS MFA を必須にする設定
-      mfa: cognito.Mfa.REQUIRED,
+      // mfa: cognito.Mfa.REQUIRED,
+      mfa: cognito.Mfa.OPTIONAL,
       mfaSecondFactor: {
         sms: true,
         otp: false, // TOTP(Authenticatorアプリ)を使わない場合はfalse
       },
+      signInAliases: {
+        username: true,
+        // preferredUsername: true,
+      },
+      autoVerify: {
+        email: true,        // メールアドレスを自動検証
+        phone: true,        // 電話番号を自動検証
+      },
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
       enableSmsRole: true,
       lambdaTriggers: {
         customMessage: customMessageLambda,

@@ -3,7 +3,6 @@ import { Request, Response, NextFunction } from 'express'
 import * as OpenApiValidator from 'express-openapi-validator';
 import { ApiError, errorHandler } from './error/ApiError';
 import path from 'path';
-
 const app = express();
 app.use(express.json());
 app.use(
@@ -16,6 +15,10 @@ app.use(
 
 const apiRouter = express.Router();
 apiRouter.get('/users', (req: Request, res: Response) => {
+  console.log("req.get('x-amzn-request-context')")
+  console.log(JSON.parse(req.get('x-amzn-request-context')!).authorizer.claims);
+  console.log("req.headers")
+  console.log(req.headers);
   res.json([{ id: 1, name: 'John Doe' }]);
 });
 
