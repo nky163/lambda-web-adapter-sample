@@ -150,3 +150,41 @@ post
 ローカル実行
 フロントだけ
 バックエンドだけ
+
+
+import { createRouter, createWebHistory } from 'vue-router';
+import Login from '@/views/Login.vue';
+import AdminDashboard from '@/views/AdminDashboard.vue';
+import UserDashboard from '@/views/UserDashboard.vue';
+
+const routes = [
+  { path: '/', component: Login },
+  { path: '/admin', component: AdminDashboard, meta: { requiresAuth: true, role: 'admin' } },
+  { path: '/user', component: UserDashboard, meta: { requiresAuth: true, role: 'user' } },
+];
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes,
+});
+
+// ナビゲーションガード
+router.beforeEach((to, from, next) => {
+  const user = JSON.parse(localStorage.getItem('user'));
+
+  if (to.meta.requiresAuth) {
+    if (!user) {
+      next('/'); // 未ログインならログインページへ
+    } else if (to.meta.role && user.role !== to.meta.role) {
+      next(user.role === 'admin' ? '/admin' : '/user'); // ロールに応じてリダイレクト
+    } else {
+      next();
+    }
+  } else if (to.path === '/' && user) {
+    next(user.role === 'admin' ? '/admin' : '/user'); // ログイン済みなら適切なページへ
+  } else {
+    next();
+  }
+});
+
+export default router;
