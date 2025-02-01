@@ -128,6 +128,7 @@ export class AppStack extends cdk.Stack {
       },
     });
     
+    
     const userPool = new cognito.UserPool(this, 'UserPool', {
       userPoolName: 'AppUserPool',
       // mfa: cognito.Mfa.REQUIRED,
@@ -148,8 +149,32 @@ export class AppStack extends cdk.Stack {
       enableSmsRole: true,
       lambdaTriggers: {
         customMessage: customMessageLambda,
-      }
+      },
+      featurePlan: cognito.FeaturePlan.PLUS,
     });
+    const cfnUserPool = userPool.node.defaultChild as cognito.CfnUserPool;
+    cfnUserPool.userPoolAddOns = 
+      {
+        advancedSecurityMode: 'AUDIT',
+      };
+    const logGroup = new logs.LogGroup(this, 'CognitoUserPoolEventLog', {
+      retention: logs.RetentionDays.ONE_DAY,
+    });
+    new cognito.CfnLogDeliveryConfiguration(this, 'LogDeliveryConfiguration', {
+      userPoolId: userPool.userPoolId,
+      logConfigurations: [{
+        cloudWatchLogsConfiguration: {
+          logGroupArn: cdk.Stack.of(this).formatArn({
+            service: 'logs',
+            resource: 'log-group',
+            resourceName: logGroup.logGroupName,
+            arnFormat: cdk.ArnFormat.COLON_RESOURCE_NAME,
+          }),
+        },
+        eventSource: 'userAuthEvents',
+        logLevel: 'INFO'
+      }]
+    })
 
     // ユーザープールクライアント
     const userPoolClient = new cognito.UserPoolClient(this, 'UserPoolClient', {
