@@ -18,21 +18,26 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "express-openapi-validator": "^5.3.9",
+    "express-pino-logger": "^7.0.0",
     "jest": "^29.7.0",
     "json-cyclic": "^1.0.2",
     "pg": "^8.13.1",
-    "pg-promise": "^11.10.2"
+    "pg-promise": "^11.10.2",
+    "pino": "^9.6.0"
   },
   "devDependencies": {
     "@aws-sdk/types": "^3.714.0",
     "@types/express": "^5.0.0",
+    "@types/express-pino-logger": "^4.0.5",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.10.1",
+    "@types/pino": "^7.0.5",
     "dockerode": "^4.0.2",
     "dotenv-cli": "^8.0.0",
     "esbuild": "^0.24.0",
     "node-pg-migrate": "^7.8.0",
     "nodemon": "^3.1.7",
+    "pino-pretty": "^13.0.0",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.2"
