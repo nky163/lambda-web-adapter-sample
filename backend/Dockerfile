@@ -18,6 +18,7 @@ FROM public.ecr.aws/docker/library/node:20-alpine
 # Lambda Web Adapter を追加
 COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.8.4 /lambda-adapter /opt/extensions/lambda-adapter
 ENV PORT=3000
+ENV READINESS_CHECK_PATH=/status
 EXPOSE 3000
 
 # 作業ディレクトリ

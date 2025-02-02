@@ -151,40 +151,17 @@ post
 フロントだけ
 バックエンドだけ
 
-
-import { createRouter, createWebHistory } from 'vue-router';
-import Login from '@/views/Login.vue';
-import AdminDashboard from '@/views/AdminDashboard.vue';
-import UserDashboard from '@/views/UserDashboard.vue';
-
-const routes = [
-  { path: '/', component: Login },
-  { path: '/admin', component: AdminDashboard, meta: { requiresAuth: true, role: 'admin' } },
-  { path: '/user', component: UserDashboard, meta: { requiresAuth: true, role: 'user' } },
-];
-
-const router = createRouter({
-  history: createWebHistory(),
-  routes,
-});
-
-// ナビゲーションガード
-router.beforeEach((to, from, next) => {
-  const user = JSON.parse(localStorage.getItem('user'));
-
-  if (to.meta.requiresAuth) {
-    if (!user) {
-      next('/'); // 未ログインならログインページへ
-    } else if (to.meta.role && user.role !== to.meta.role) {
-      next(user.role === 'admin' ? '/admin' : '/user'); // ロールに応じてリダイレクト
-    } else {
-      next();
-    }
-  } else if (to.path === '/' && user) {
-    next(user.role === 'admin' ? '/admin' : '/user'); // ログイン済みなら適切なページへ
-  } else {
-    next();
-  }
-});
-
-export default router;
+3.1 ログメッセージのフィールド
+- タイムスタンプ (time): PinoのtimestampオプションでISO形式（またはUnixエポック）を付与
+- ログレベル (level): trace / debug / info / warn / error / fatal
+- メッセージ (msg): 読みやすいテキスト。コンテキスト付与するときにはオブジェクト引数を活用
+- エラー情報（スタックトレースなど）: logger.error({ err }, '説明') のようにオブジェクトで渡すとJSON出力に含まれる
+- リクエストID: アクセスログと関連付けたい場合は、リクエスト単位でIDを生成し、child() ロガーや req.log で紐づけると便利
+- アカウントID: アカウントID
+- リソース: {メソッド}: {パス} サービス名/モジュール名: 他のマイクロサービスやモジュールとの区別
+3.2 ログレベルの運用
+trace / debug: 本番では通常出力しない。調査時やローカル開発では有効化する場合がある。
+info: 正常動作や一般的な処理の進捗。
+warn: 想定外だが直ちに処置が必要ない事象（遅延、外部APIレスポンスエラーなど、処理継続は可能なもの）。
+error: 処理が失敗、もしくはアプリケーションにとって重要な問題。
+fatal: システムが停止するほど重大なエラー（HTTPレスポンスを返せないなど）。

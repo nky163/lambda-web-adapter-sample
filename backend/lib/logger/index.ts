@@ -21,7 +21,7 @@ const logger = pino({
   
   // 開発環境でだけpino-prettyを利用したい場合の例
   transport:
-    process.env.NODE_ENV !== 'production'
+    process.env.NODE_ENV === 'local'
       ? {
           target: 'pino-pretty',
           options: {

@@ -17,7 +17,7 @@ export interface ApiErrorResponse {
 
 // Axiosインスタンスの作成
 const api: AxiosInstance = axios.create({
-  baseURL: 'https://d3k54zm2lcl9wu.cloudfront.net/api', // 共通のエンドポイント
+  baseURL: 'https://hg0trlj3ii.execute-api.ap-northeast-1.amazonaws.com/prod/api', // 共通のエンドポイント
   timeout: 10000, // タイムアウト
   headers: {
     'Content-Type': 'application/json', // 共通のContent-Type
