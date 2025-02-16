@@ -5,6 +5,7 @@ import { VpcStack } from '../lib/vpc-stack';
 import { RdsStack } from '../lib/rds-stack';
 import { RdsCredentialStack } from '../lib/rds-credential-stack';
 import { FargateSessionManagerStack } from '../lib/fargate-session-manager-stack';
+import { CertificateStack } from '../lib/certificate-stack';
 
 const app = new cdk.App();
 
@@ -40,11 +41,26 @@ new FargateSessionManagerStack(app, `FargateSessionManagerStack`, {
   vpc: vpcStack.vpc,
 })
 
+const certificate = new CertificateStack(app, `CerificateStack-${stage}`, {
+  domainName: `nakayanews.com`,
+  subDomainName: stage,
+  env: {
+    account: process.env.CDK_DEFAULT_ACCOUNT,
+    region: 'us-east-1',
+  }
+})
+
 new AppStack(app, `AppStack-${stage}`, {
   env: {
     account: process.env.CDK_DEFAULT_ACCOUNT,
     region: process.env.CDK_DEFAULT_REGION
   },
   stage: stage,
-  vpc: vpcStack.vpc
+  vpc: vpcStack.vpc,
+  domainInfo: {
+    certificate: certificate.certificate,
+    domainName: certificate.fqdn,
+    hostedZone: certificate.hostedZone,
+  },
+  crossRegionReferences: true
 });

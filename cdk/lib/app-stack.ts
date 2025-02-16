@@ -12,14 +12,24 @@ import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as path from 'path';
+import * as acm from 'aws-cdk-lib/aws-certificatemanager';
+import * as route53 from 'aws-cdk-lib/aws-route53';
+import * as targets from 'aws-cdk-lib/aws-route53-targets';
+import { CertificateConstruct } from './constracts/certificate-constract';
 
 interface AppStackProps extends cdk.StackProps {
   vpc: ec2.IVpc;
   stage: string;
+  domainInfo: {
+    certificate: acm.Certificate;
+    domainName: string;
+    hostedZone: route53.IHostedZone;
+  }
+  
 }
 
 export class AppStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: AppStackProps) {
+  constructor(scope: Construct, id: string, props: AppStackProps) {
     super(scope, id, props);
 
     // -----------------------------
@@ -37,6 +47,8 @@ export class AppStack extends cdk.Stack {
 
     // 省略: CloudFront Distribution
     const distribution = new cloudfront.Distribution(this, 'SiteDistribution', {
+      domainNames: [props.domainInfo.domainName],
+      certificate: props.domainInfo.certificate,
       defaultBehavior: {
         origin: new origins.S3Origin(siteBucket, { originAccessIdentity }),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
@@ -56,6 +68,17 @@ export class AppStack extends cdk.Stack {
           ttl: cdk.Duration.seconds(0),
         },
       ],
+    });
+    
+    new route53.ARecord(this, 'Route53RecordSet', {
+      // ドメイン指定
+      recordName: props.stage,
+      // ホストゾーンID指定
+      zone: props.domainInfo.hostedZone,
+      // エイリアスターゲット設定
+      target: route53.RecordTarget.fromAlias(
+        new targets.CloudFrontTarget(distribution)
+      ),
     });
 
     // 省略: S3 Deploy
@@ -98,6 +121,7 @@ export class AppStack extends cdk.Stack {
           user: true,
         }),
       },
+      
     });
     api.node.addDependency(apiGatewayAccount);
     
@@ -196,6 +220,31 @@ export class AppStack extends cdk.Stack {
     proxyResource.addMethod('ANY', new apigateway.LambdaIntegration(backendLambda), {
       authorizer: cognitoAuthorizer,
       authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+    
+    const apiCertificate = new CertificateConstruct(this, `Certificate-Constract`, {
+      domainName: 'nakayanews.com',
+      subDomainName: `${props.stage}.api`,
+    });
+    
+    const apiDomain = new apigateway.DomainName(this, 'ApiDomain', {
+      domainName: apiCertificate.fqdn,
+      certificate: apiCertificate.certificate,
+      endpointType: apigateway.EndpointType.REGIONAL,
+      securityPolicy: apigateway.SecurityPolicy.TLS_1_2, 
+      
+    });
+    
+    new apigateway.BasePathMapping(this, 'ApiBasePathMapping', {
+      domainName: apiDomain,
+      restApi: api, // 既存の API Gateway リソース
+      basePath: '',
+    });
+    
+    new route53.ARecord(this, 'ApiAliasRecord', {
+      zone: apiCertificate.hostedZone,
+      recordName: `${props.stage}.api`,
+      target: route53.RecordTarget.fromAlias(new targets.ApiGatewayDomain(apiDomain)),
     });
   }
 }

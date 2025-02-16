@@ -50,5 +50,13 @@
         ]
       }
     ]
+  },
+  "hosted-zone:account=142196353354:domainName=nakayanews.com:region=us-east-1": {
+    "Id": "/hostedzone/Z0251004K1QRWYP2OECW",
+    "Name": "nakayanews.com."
+  },
+  "hosted-zone:account=142196353354:domainName=nakayanews.com:region=ap-northeast-1": {
+    "Id": "/hostedzone/Z0251004K1QRWYP2OECW",
+    "Name": "nakayanews.com."
   }
 }
