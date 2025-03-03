@@ -1,3 +1,41 @@
+lambad呼び出し
+```typescript
+import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
+
+const client = new LambdaClient({
+  region: "us-east-1", // 適宜リージョンを設定
+  // ローカル実行の場合は endpoint を設定します
+  // endpoint: "http://localhost:3001"
+});
+
+const command = new InvokeCommand({
+  FunctionName: 'myLambdaFunction',
+  InvocationType: 'RequestResponse', // 同期呼び出しの場合
+  Payload: Buffer.from(JSON.stringify({
+    key1: "value1",
+    key2: "value2"
+  })),
+});
+
+try {
+  const response = await client.send(command);
+  
+  // LambdaのレスポンスはBuffer型のPayloadに入っています
+  const payloadStr = Buffer.from(response.Payload).toString();
+  console.log("Lambdaの処理結果（文字列）:", payloadStr);
+  
+  // JSON形式の場合はパースしてオブジェクトとして利用可能
+  const result = JSON.parse(payloadStr);
+  console.log("解析後のレスポンスオブジェクト:", result);
+  
+  // 例えば、Lambda関数が { statusCode: 200, body: "result data" } を返している場合
+  console.log("Lambda内のstatusCode:", result.statusCode);
+  console.log("Lambda内のbody:", result.body);
+} catch (error) {
+  console.error("Lambda呼び出し中にエラーが発生しました:", error);
+}
+```
+
 
 # フロントエンド共通処理
 - axios共通設定
