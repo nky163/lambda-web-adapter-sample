@@ -1,205 +1,89 @@
-lambad呼び出し
-```typescript
-import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
+生成AI
 
-const client = new LambdaClient({
-  region: "us-east-1", // 適宜リージョンを設定
-  // ローカル実行の場合は endpoint を設定します
-  // endpoint: "http://localhost:3001"
-});
-
-const command = new InvokeCommand({
-  FunctionName: 'myLambdaFunction',
-  InvocationType: 'RequestResponse', // 同期呼び出しの場合
-  Payload: Buffer.from(JSON.stringify({
-    key1: "value1",
-    key2: "value2"
-  })),
-});
-
-try {
-  const response = await client.send(command);
-  
-  // LambdaのレスポンスはBuffer型のPayloadに入っています
-  const payloadStr = Buffer.from(response.Payload).toString();
-  console.log("Lambdaの処理結果（文字列）:", payloadStr);
-  
-  // JSON形式の場合はパースしてオブジェクトとして利用可能
-  const result = JSON.parse(payloadStr);
-  console.log("解析後のレスポンスオブジェクト:", result);
-  
-  // 例えば、Lambda関数が { statusCode: 200, body: "result data" } を返している場合
-  console.log("Lambda内のstatusCode:", result.statusCode);
-  console.log("Lambda内のbody:", result.body);
-} catch (error) {
-  console.error("Lambda呼び出し中にエラーが発生しました:", error);
-}
-```
-
-
-# フロントエンド共通処理
-- axios共通設定
-```typescript
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
-
-// APIレスポンスの型定義例
-export interface ApiResponse<T> {
-  data: T;
-  message?: string;
-  status?: string;
-}
-
-// エラーレスポンスの型定義例
-export interface ApiErrorResponse {
-  statusCode: number;
-  message: string;
-}
-
-// Axiosインスタンスの作成
-const api: AxiosInstance = axios.create({
-  baseURL: 'https://api.example.com', // 共通のエンドポイント
-  timeout: 10000, // タイムアウト
-  headers: {
-    'Content-Type': 'application/json', // 共通のContent-Type
-  },
-});
-
-// リクエストインターセプター: 動的なヘッダーの設定
-api.interceptors.request.use(
-  (config: AxiosRequestConfig) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers = {
-        ...config.headers,
-        Authorization: `Bearer ${token}`,
-      };
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// レスポンスインターセプター: 共通エラーハンドリング
-api.interceptors.response.use(
-  (response: AxiosResponse) => response,
-  (error) => {
-    if (error.response) {
-      // サーバーエラー
-      console.error(`[API Error]: ${error.response.status} - ${error.response.data.message || 'Unexpected error'}`);
-    } else if (error.request) {
-      // ネットワークエラー
-      console.error('[Network Error]: Unable to reach the server.');
-    } else {
-      // その他のエラー
-      console.error(`[Unknown Error]: ${error.message}`);
-    }
-
-    // 必要に応じてエラー内容を加工してスロー
-    const apiError: ApiErrorResponse = {
-      statusCode: error.response?.status || 500,
-      message: error.response?.data?.message || 'An unexpected error occurred.',
-    };
-    return Promise.reject(apiError);
-  }
-);
-
-export default api;
-
-
----
-
-import api, { ApiResponse } from '../utils/api';
-
-// レスポンスデータ型の定義
-interface User {
-  id: number;
-  name: string;
-  email: string;
-}
-
-// ユーザー一覧取得 (GETリクエスト)
-export const fetchUsers = async (): Promise<ApiResponse<User[]>> => {
-  const response = await api.get<ApiResponse<User[]>>('/users');
-  return response.data;
-};
-
-// 新規ユーザー登録 (POSTリクエスト)
-export const createUser = async (user: Omit<User, 'id'>): Promise<ApiResponse<User>> => {
-  const response = await api.post<ApiResponse<User>>('/users', user);
-  return response.data;
-};
-
-```
----
-
-フロントエンドテスト
-
-
-# アカウント作成
-- admin-create-user
-- admin-ser-user-password
-- admin-confirm-sign-up
-
-
-- リポジトリに戻りは、、、エンティティ
-- 
-- ユーザー作成
-	- リクエストのバリデーション
-	- AdminCreateUserControllerの呼び出し
-		- 引数
-			- AdminCreateUserInput
-				- actorAccountId
-				- action
-				- resource
-				
-				- 権限
-			- AdminCreateUserResponse
-				- 
-		- リクエストのusernameからAcountテーブルのaccountIdをキーにユーザーオブジェクトを取得
-		- ID生成
-		- 生成するAccountオブジェクトを生成
-		- 権限チェック
-			- ユーザー作成
-				- Actor: リクエストした人
-				- Action: Create
-				- Resource: アカウント
-		- try
-			- adminCreateUser
-			- adminSetUserAtribuute
-			- adminSetUserPassword
-			- アカウントテーブルにユーザー作成
-		- catch
-			- adminDeleteUser
-		- ユーザーオブジェクトを返却
-	- レスポンスに変換
-- 
-
-# Cognitoのローカル
-
-# API呼び出し時の認証
-set-user-password
-
-- 画面から
-post
-
-
-ローカル実行
-フロントだけ
-バックエンドだけ
-
-3.1 ログメッセージのフィールド
-- タイムスタンプ (time): PinoのtimestampオプションでISO形式（またはUnixエポック）を付与
-- ログレベル (level): trace / debug / info / warn / error / fatal
-- メッセージ (msg): 読みやすいテキスト。コンテキスト付与するときにはオブジェクト引数を活用
-- エラー情報（スタックトレースなど）: logger.error({ err }, '説明') のようにオブジェクトで渡すとJSON出力に含まれる
-- リクエストID: アクセスログと関連付けたい場合は、リクエスト単位でIDを生成し、child() ロガーや req.log で紐づけると便利
-- アカウントID: アカウントID
-- リソース: {メソッド}: {パス} サービス名/モジュール名: 他のマイクロサービスやモジュールとの区別
-3.2 ログレベルの運用
-trace / debug: 本番では通常出力しない。調査時やローカル開発では有効化する場合がある。
-info: 正常動作や一般的な処理の進捗。
-warn: 想定外だが直ちに処置が必要ない事象（遅延、外部APIレスポンスエラーなど、処理継続は可能なもの）。
-error: 処理が失敗、もしくはアプリケーションにとって重要な問題。
-fatal: システムが停止するほど重大なエラー（HTTPレスポンスを返せないなど）。
+- 目的
+	- だれでも、素早く価値を提供できるよう
+- 目標
+	- 設計書とタスクをインプットしたら１つの機能とその振る舞いを確認できるテスト、ドキュメントが完成する
+	- 開発者が自分でコードを書かないでよい
+	- 開発者が自分でコードを読まないでよい
+		- テストは読む必要あり？
+	- 一般的なフロントエンド(SPA)、バックエンド(WebAPI)で構成されるプロジェクトに適用できる
+- 課題
+	- インプットとして何をどのような内容で与えれば良いか
+		- インフラ
+			- プロンプト
+				- コーディングルール
+				- フォルダ構成
+				- ベストプラクティスに関する何か
+				- 技術スタック
+					- ライブラリ(CDK)
+				- Copilotの振る舞いについて
+					- AWSのベストプラクティス遵守
+					- CDKに関するベストプラクティス遵守
+			- タスク
+				- 何が書かれているべきか、どういうフォーマットであるべきか
+					- 完了条件
+			- 設計書
+				- AWS構成図
+				- 非機能要件定義 or さらに具体化した非機能に関する設計書？
+		- バックエンド
+			- プロンプト
+				- コーディングルール
+				- フォルダ構成
+				- 技術スタック
+					- フレームワーク
+					- ライブラリ
+					- アーキテクチャ
+					- 静的解析、フォーマッター
+				- Copilotの振る舞いについて
+					- コメントについて
+					- 守ってほしい原則系
+						- SOLID
+						- KISS
+						- DRY
+						- デメテル
+			- 設計書
+				- APIの外部IF定義(swagger)
+				- ビジネスロジック
+					- ドメイン知識
+						- ドメインモデル図
+						- 不変条件(業務ルール)
+					- クラス図？
+				- データベース
+					- ER図？
+				- 非機能要件定義
+			- タスク
+				- 完了条件
+				- 他にどんな項目が必要か
+		- フロントエンド
+			- プロンプト
+				- コーディングルール
+				- フォルダ構成
+				- 技術スタック
+					- UIフレームワーク
+					- CSSフレームワーク
+					- ライブラリ
+				- 使用ライブラリ
+				- 振る舞い
+					- 原則系
+						- コンポーネント指向
+						- Atomic Design
+						- SOLID
+						- DRY
+			- タスク
+				- Gherkin?
+				- 完了条件
+			- figma
+			- 画面設計書
+			- パス
+		- 共通
+			- プロンプト
+				- Gitに関するルール
+					- コミットメッセージ
+					- CI/CD(コミット前)
+			- サンプル実装
+	- コードベースの0-1をどうするか
+		- コード生成を始めるにあたり、サンプル実装がある方が良い
+			- → ナレッジベース...https://docs.github.com/ja/enterprise-cloud@latest/copilot/customizing-copilot/managing-copilot-knowledge-bases
+	- MCP活用
+	- プロンプト
